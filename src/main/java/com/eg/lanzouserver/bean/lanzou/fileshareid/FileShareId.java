@@ -1,7 +1,7 @@
 /**
   * Copyright 2020 bejson.com 
   */
-package com.eg.lanzouserver.bean.fileshareid;
+package com.eg.lanzouserver.bean.lanzou.fileshareid;
 
 /**
  * Auto-generated: 2020-02-01 20:48:13

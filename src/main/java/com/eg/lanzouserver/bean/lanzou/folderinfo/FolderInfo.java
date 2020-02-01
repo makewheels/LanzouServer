@@ -1,7 +1,7 @@
 /**
  * Copyright 2020 bejson.com
  */
-package com.eg.lanzouserver.bean.folderinfo;
+package com.eg.lanzouserver.bean.lanzou.folderinfo;
 
 import lombok.Data;
 

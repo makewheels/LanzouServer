@@ -2,10 +2,15 @@ package com.eg.lanzouserver.util;
 
 import com.alibaba.fastjson.JSON;
 import com.eg.lanzouserver.bean.MyFile;
-import com.eg.lanzouserver.bean.fileshareid.FileShareId;
-import com.eg.lanzouserver.bean.folderinfo.FolderInfo;
-import com.eg.lanzouserver.bean.folderinfo.Text;
+import com.eg.lanzouserver.bean.lanzou.DirectUrl;
+import com.eg.lanzouserver.bean.lanzou.fileshareid.FileShareId;
+import com.eg.lanzouserver.bean.lanzou.folderinfo.FolderInfo;
+import com.eg.lanzouserver.bean.lanzou.folderinfo.Text;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
 
 import java.util.Date;
 import java.util.HashMap;
@@ -32,7 +37,7 @@ public class LanzouUtil {
      */
     private static FolderInfo getSingleFolderInfo(String folder_id, int page) {
         String params = "task=" + Constants.TASK_GET_FOLDER_INFO + "&folder_id=" + folder_id + "&pg=" + page;
-        String json = HttpUtil.post(Constants.BASE_URL, getLanzouHeader(), params);
+        String json = HttpUtil.post(Constants.WOOZOOO_URL, getLanzouHeader(), params);
         return JSON.parseObject(json, FolderInfo.class);
     }
 
@@ -57,7 +62,7 @@ public class LanzouUtil {
             myFile.setTsId(tsId);
             //现在还需要拿到shareId
             String params = "task=" + Constants.TASK_GET_FILE_SHARE_ID + "&file_id=" + fileId;
-            String json = HttpUtil.post(Constants.BASE_URL, getLanzouHeader(), params);
+            String json = HttpUtil.post(Constants.WOOZOOO_URL, getLanzouHeader(), params);
             FileShareId fileShareId = JSON.parseObject(json, FileShareId.class);
             myFile.setShareId(fileShareId.getInfo().getF_id());
 
@@ -82,6 +87,30 @@ public class LanzouUtil {
             saveSingleFolder(folder_id, singleFolderInfo);
             page++;
         } while (CollectionUtils.isNotEmpty(singleFolderInfo.getText()));
+    }
+
+    /**
+     * 通过文件shareId获取直链
+     *
+     * @param shareId
+     * @return
+     */
+    public static String getDirectUrl(String shareId) {
+        Document document = Jsoup.parse(HttpUtil.get(Constants.LANZOU_URL + "/" + shareId));
+        Element iframe = document.getElementsByTag("iframe").get(0);
+        String src = iframe.attr("src");
+        String html = HttpUtil.get(Constants.LANZOU_URL + src);
+        String sign = StringUtils.substringBetween(html, "var sg = '", "';");
+        Map<String, String> header = new HashMap<>();
+        header.put("referer", src);
+        String json = HttpUtil.post(Constants.LANZOU_URL + "/ajaxm.php", header, "action=downprocess&sign=" + sign + "&ves=1");
+        DirectUrl directUrl = JSON.parseObject(json, DirectUrl.class);
+        return directUrl.getDom() + "/file/" + directUrl.getUrl();
+    }
+
+    public static void main(String[] args) {
+        String s = getDirectUrl("i8z87ud");
+        System.out.println(s);
     }
 
 }
