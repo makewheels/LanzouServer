@@ -64,11 +64,10 @@ public class HttpUtil {
      * 简单post请求
      *
      * @param url
-     * @param header
      * @param params
      * @return
      */
-    public static String post(String url, Map<String, String> header, Map<String, String> params) {
+    public static String post(String url, Map<String, String> params) {
         System.out.println("HttpClient POST: " + url);
         CloseableHttpClient client = HttpClients.createDefault();
         HttpPost httpPost = new HttpPost(url);
@@ -114,6 +113,7 @@ public class HttpUtil {
         HttpPost httpPost = new HttpPost(url);
         Set<String> keySet = headerMap.keySet();
         httpPost.setHeader("User-Agent", userAgent);
+        httpPost.setHeader("Content-type", contentType);
         for (String key : keySet) {
             httpPost.setHeader(key, headerMap.get(key));
         }
