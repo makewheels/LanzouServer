@@ -2,10 +2,13 @@ package com.eg.lanzouserver.util;
 
 import com.alibaba.fastjson.JSON;
 import com.eg.lanzouserver.bean.MyFile;
+import com.eg.lanzouserver.bean.Video;
 import com.eg.lanzouserver.bean.lanzou.DirectUrl;
 import com.eg.lanzouserver.bean.lanzou.fileshareid.FileShareId;
 import com.eg.lanzouserver.bean.lanzou.folderinfo.FolderInfo;
 import com.eg.lanzouserver.bean.lanzou.folderinfo.Text;
+import com.eg.lanzouserver.repository.MyFileRepository;
+import com.eg.lanzouserver.repository.VideoRepository;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.jsoup.Jsoup;
@@ -21,8 +24,10 @@ import java.util.Map;
  * @time 2020-02-01 20:04
  */
 public class LanzouUtil {
+    private MyFileRepository myFileRepository;
+    private VideoRepository videoRepository;
 
-    private static Map<String, String> getLanzouHeader() {
+    private Map<String, String> getLanzouHeader() {
         Map<String, String> header = new HashMap<>();
         header.put("Cookie", Constants.COOKIE_PHPDISK_INFO_KEY + "=" + Constants.COOKIE_PHPDISK_INFO_VALUE + ";");
         return header;
@@ -35,7 +40,7 @@ public class LanzouUtil {
      * @param page
      * @return
      */
-    private static FolderInfo getSingleFolderInfo(String folder_id, int page) {
+    private FolderInfo getSingleFolderInfo(String folder_id, int page) {
         String params = "task=" + Constants.TASK_GET_FOLDER_INFO + "&folder_id=" + folder_id + "&pg=" + page;
         String json = HttpUtil.post(Constants.WOOZOOO_URL, getLanzouHeader(), params);
         return JSON.parseObject(json, FolderInfo.class);
@@ -46,8 +51,9 @@ public class LanzouUtil {
      *
      * @param folder_id
      * @param singleFolderInfo
+     * @param videoId
      */
-    private static void saveSingleFolder(String folder_id, FolderInfo singleFolderInfo) {
+    private void saveSingleFolder(String folder_id, FolderInfo singleFolderInfo, String videoId) {
         List<Text> text = singleFolderInfo.getText();
         for (Text singleFileInfo : text) {
             MyFile myFile = new MyFile();
@@ -65,7 +71,14 @@ public class LanzouUtil {
             String json = HttpUtil.post(Constants.WOOZOOO_URL, getLanzouHeader(), params);
             FileShareId fileShareId = JSON.parseObject(json, FileShareId.class);
             myFile.setShareId(fileShareId.getInfo().getF_id());
-
+            myFile.setVideoId(videoId);
+            //保存myFile到数据库
+            MyFile myFileByTsIdEquals = myFileRepository.findMyFileByTsIdEquals(tsId);
+            //先判断数据库中是不是已经存了
+            if (myFileByTsIdEquals != null) {
+                return;
+            }
+            myFileRepository.save(myFile);
             //这是pwd，没啥用
 //            String pwd = fileShareId.getInfo().getPwd();
 
@@ -78,15 +91,36 @@ public class LanzouUtil {
      * 保存一个文件夹的所有文件的信息，主要是要保存文件的id，和分享id
      *
      * @param folder_id
+     * @param videoRepository
+     * @param myFileRepository
      */
-    public static void handleSaveFolder(String folder_id) {
+    public void handleSaveFolder(String folder_id, VideoRepository videoRepository, MyFileRepository myFileRepository) {
+        this.myFileRepository = myFileRepository;
+        this.videoRepository = videoRepository;
+        //因为一个文件夹内的所有文件，就是一个video的碎片
+        Video video = new Video();
+        video.setCreateTime(new Date());
         int page = 1;
-        FolderInfo singleFolderInfo;
-        do {
-            singleFolderInfo = getSingleFolderInfo(folder_id, page);
-            saveSingleFolder(folder_id, singleFolderInfo);
+        //先获取一次
+        FolderInfo singleFolderInfo = getSingleFolderInfo(folder_id, page);
+        //拿到videoId，就是tsId的中划线的前部分
+        String videoId = null;
+        List<Text> fileInfoList = singleFolderInfo.getText();
+        if (CollectionUtils.isNotEmpty(fileInfoList)) {
+            String filename = fileInfoList.get(0).getName();
+            videoId = filename.split("-")[0];
+            //保存myFile
+            saveSingleFolder(folder_id, singleFolderInfo, videoId);
+            //保存video
+            video.setVideoId(videoId);
+            videoRepository.save(video);
+        }
+        //把剩下所有的文件都保存的数据库
+        while (CollectionUtils.isNotEmpty(singleFolderInfo.getText())) {
             page++;
-        } while (CollectionUtils.isNotEmpty(singleFolderInfo.getText()));
+            singleFolderInfo = getSingleFolderInfo(folder_id, page);
+            saveSingleFolder(folder_id, singleFolderInfo, videoId);
+        }
     }
 
     /**
@@ -95,7 +129,7 @@ public class LanzouUtil {
      * @param shareId
      * @return
      */
-    public static String getDirectUrl(String shareId) {
+    public String getDirectUrl(String shareId) {
         Document document = Jsoup.parse(HttpUtil.get(Constants.LANZOU_URL + "/" + shareId));
         Element iframe = document.getElementsByTag("iframe").get(0);
         String src = iframe.attr("src");
@@ -103,14 +137,10 @@ public class LanzouUtil {
         String sign = StringUtils.substringBetween(html, "var sg = '", "';");
         Map<String, String> header = new HashMap<>();
         header.put("referer", src);
-        String json = HttpUtil.post(Constants.LANZOU_URL + "/ajaxm.php", header, "action=downprocess&sign=" + sign + "&ves=1");
+        String params = "action=downprocess&sign=" + sign + "&ves=1";
+        String json = HttpUtil.post(Constants.LANZOU_URL + "/ajaxm.php", header, params);
         DirectUrl directUrl = JSON.parseObject(json, DirectUrl.class);
         return directUrl.getDom() + "/file/" + directUrl.getUrl();
-    }
-
-    public static void main(String[] args) {
-        String s = getDirectUrl("i8z87ud");
-        System.out.println(s);
     }
 
 }
