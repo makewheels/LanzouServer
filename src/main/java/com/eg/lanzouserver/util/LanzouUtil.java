@@ -7,6 +7,7 @@ import com.eg.lanzouserver.bean.lanzou.DirectUrl;
 import com.eg.lanzouserver.bean.lanzou.fileshareid.FileShareId;
 import com.eg.lanzouserver.bean.lanzou.folderinfo.FolderInfo;
 import com.eg.lanzouserver.bean.lanzou.folderinfo.Text;
+import com.eg.lanzouserver.bean.lanzou.uploadresponse.UploadResponse;
 import com.eg.lanzouserver.repository.MyFileRepository;
 import com.eg.lanzouserver.repository.VideoRepository;
 import org.apache.commons.collections4.CollectionUtils;
@@ -15,6 +16,8 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -143,4 +146,48 @@ public class LanzouUtil {
         return directUrl.getDom() + "/file/" + directUrl.getUrl();
     }
 
+    /**
+     * 上传文件到蓝奏云
+     *
+     * @param file
+     * @param folderId
+     * @return
+     * @throws IOException
+     */
+    public UploadResponse uploadFile(File file, String folderId) throws IOException {
+        Map<String, String> header = new HashMap();
+        header.put("accept", "*/*");
+        header.put("Cookie", Constants.COOKIE_PHPDISK_INFO_KEY + "=" + Constants.COOKIE_PHPDISK_INFO_VALUE);
+        header.put("origin", "https://pc.woozooo.com");
+        header.put("Referer", "https://pc.woozooo.com/mydisk.php?item=files&action=index");
+        header.put("sec-fetch-mode", "cors");
+        header.put("sec-fetch-site", "same-origin");
+
+        Map<String, String> params = new HashMap();
+        params.put("task", Constants.TASK_UPLOAD_FILE);
+        params.put("folder_id", folderId);
+        params.put("type", "application/zip");
+        params.put("id", "WU_FILE_0");
+        params.put("name", file.getName());
+        params.put("size", file.length() + "");
+
+        String json = HttpUtil.uploadFile(Constants.UPLOAD_URL, header, params,
+                "upload_file", file);
+        return JSON.parseObject(json, UploadResponse.class);
+    }
+
+    /**
+     * 蓝奏云上传文件到upload文件夹
+     *
+     * @param file
+     * @return
+     */
+    public UploadResponse simpleUploadFile(File file) {
+        try {
+            return uploadFile(file, Constants.UPLOAD_FOLDER_ID);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
 }

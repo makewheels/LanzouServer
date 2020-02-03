@@ -59,7 +59,7 @@ public class PrepareVideo {
         File htmlFile = FreemakerUtil.createHtmlByMode("video.html.ftl", "video.html", params);
         //上传html文件到腾讯云对象存储
         QcloudCosUtil.saveToQcloud(htmlFile, "video/" + title + "-" + videoId + "/video.html");
-        String htmlUrl = "https://bucket-1253319037.cos.ap-beijing.myqcloud.com/video/"
+        String htmlUrl = "http://bucket-1253319037.cos.ap-beijing.myqcloud.com/video/"
                 + URLEncoder.encode(title, "utf-8") + "-" + videoId + "/video.html";
         System.out.println(htmlUrl);
     }

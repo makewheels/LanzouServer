@@ -2,9 +2,15 @@ package com.eg.lanzouserver;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.builder.SpringApplicationBuilder;
+import org.springframework.boot.web.servlet.support.SpringBootServletInitializer;
 
 @SpringBootApplication
-public class LanzouServerApplication {
+public class LanzouServerApplication extends SpringBootServletInitializer {
+    @Override
+    protected SpringApplicationBuilder configure(SpringApplicationBuilder application) {
+        return application.sources(LanzouServerApplication.class);
+    }
 
     public static void main(String[] args) {
         SpringApplication.run(LanzouServerApplication.class, args);

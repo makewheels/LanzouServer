@@ -11,3 +11,7 @@ ffmpeg -i 1.mp4 -codec copy -vbsf h264_mp4toannexb -map 0 -f segment -segment_li
 不安全的，不校验跨域的浏览器的参数是这样的：
 
 --disable-web-security --user-data-dir=C:\MyChromeDevUserData
+
+Linux Docker跑mongo命令：
+
+docker run -itd --name mongo -p 27017:27017 mongo

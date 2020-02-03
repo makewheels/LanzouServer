@@ -81,6 +81,7 @@ public class LanzouController {
                 .findElement(By.xpath("//*[@id=\"go\"]/a"));
         String href = a.getAttribute("href");
         System.out.println(href);
+
         System.out.println("getFile tsId = " + myFile.getTsId());
 
 //        return "redirect:" + new LanzouUtil().getDirectUrl(shareId);
