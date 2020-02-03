@@ -136,18 +136,27 @@
             </plugin>
             <!--打war包插件-->
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-war-plugin</artifactId>
-                <version>3.0.0</version>
+                <version>3.2.3</version>
+                <configuration>
+                    <packagingExcludes>
+                        WEB-INF/classes/chromedriver.exe,
+                        WEB-INF/classes/ffmpeg.exe,
+                        WEB-INF/classes/phantomjs,
+                        WEB-INF/classes/phantomjs.exe
+                    </packagingExcludes>
+                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.8.1</version>
                 <configuration>
                     <source>8</source>
                     <target>8</target>
                 </configuration>
             </plugin>
-
         </plugins>
     </build>
 

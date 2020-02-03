@@ -85,7 +85,7 @@ public class LanzouUtil {
             String fileId = singleFileInfo.getId();
             myFile.setFileId(fileId);
             myFile.setFolderId(folder_id);
-            String filename = singleFileInfo.getName();
+            String filename = singleFileInfo.getName_all();
             myFile.setFilename(filename);
             myFile.setCreateTime(new Date());
             //解析出tsId
@@ -207,7 +207,7 @@ public class LanzouUtil {
 
         //返回值
         UploadResponse uploadResponse = JSON.parseObject(json, UploadResponse.class);
-        System.out.println("lanzou upload " + uploadResponse.getText().get(0).getName()
+        System.out.println("lanzou upload " + uploadResponse.getText().get(0).getName_all() + " "
                 + JSON.toJSONString(uploadResponse));
         return uploadResponse;
     }
