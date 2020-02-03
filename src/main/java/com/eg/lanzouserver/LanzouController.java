@@ -1,6 +1,7 @@
 package com.eg.lanzouserver;
 
 import com.eg.lanzouserver.bean.MyFile;
+import com.eg.lanzouserver.bean.Video;
 import com.eg.lanzouserver.repository.MyFileRepository;
 import com.eg.lanzouserver.repository.VideoRepository;
 import com.eg.lanzouserver.util.Constants;
@@ -8,21 +9,13 @@ import com.eg.lanzouserver.util.LanzouUtil;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
-import org.openqa.selenium.chrome.ChromeDriver;
-import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.phantomjs.PhantomJSDriver;
-import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
-
-import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.lang.ref.PhantomReference;
 
 /**
  * @time 2020-02-01 19:47
@@ -34,6 +27,8 @@ public class LanzouController {
     VideoRepository videoRepository;
     @Autowired
     MyFileRepository myFileRepository;
+
+    private WebDriver driver;
 
     /**
      * 根据文件夹id获取文件shareId，并存数据库
@@ -47,9 +42,6 @@ public class LanzouController {
         new LanzouUtil().handleSaveFolder(folder_id, videoRepository, myFileRepository);
         return "<h1>hello</h1>";
     }
-
-
-    private WebDriver driver;
 
     /**
      * 根据tsId获取文件直链，因为这里已经是在浏览器播放了，需要返回重定向

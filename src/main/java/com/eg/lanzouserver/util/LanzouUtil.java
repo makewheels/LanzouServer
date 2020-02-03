@@ -4,21 +4,25 @@ import com.alibaba.fastjson.JSON;
 import com.eg.lanzouserver.bean.MyFile;
 import com.eg.lanzouserver.bean.Video;
 import com.eg.lanzouserver.bean.lanzou.DirectUrl;
+import com.eg.lanzouserver.bean.lanzou.LanzouFile;
 import com.eg.lanzouserver.bean.lanzou.fileshareid.FileShareId;
 import com.eg.lanzouserver.bean.lanzou.folderinfo.FolderInfo;
 import com.eg.lanzouserver.bean.lanzou.folderinfo.Text;
 import com.eg.lanzouserver.bean.lanzou.uploadresponse.SimpleUploadResponse;
 import com.eg.lanzouserver.bean.lanzou.uploadresponse.UploadResponse;
+import com.eg.lanzouserver.repository.LanzouFileRepository;
 import com.eg.lanzouserver.repository.MyFileRepository;
 import com.eg.lanzouserver.repository.VideoRepository;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
+import javax.annotation.PostConstruct;
 import java.io.File;
 import java.io.IOException;
 import java.util.Date;
@@ -29,9 +33,24 @@ import java.util.Map;
 /**
  * @time 2020-02-01 20:04
  */
+@Component
 public class LanzouUtil {
-    private MyFileRepository myFileRepository;
-    private VideoRepository videoRepository;
+    @Autowired
+    MyFileRepository myFileRepository;
+    @Autowired
+    VideoRepository videoRepository;
+    @Autowired
+    LanzouFileRepository lanzouFileRepository;
+
+    private static LanzouUtil self;
+
+    @PostConstruct
+    private void init() {
+        self = this;
+        self.myFileRepository = this.myFileRepository;
+        self.videoRepository = this.videoRepository;
+        self.lanzouFileRepository = this.lanzouFileRepository;
+    }
 
     private Map<String, String> getLanzouHeader() {
         Map<String, String> header = new HashMap<>();
@@ -46,7 +65,7 @@ public class LanzouUtil {
      * @param page
      * @return
      */
-    private FolderInfo getSingleFolderInfo(String folder_id, int page) {
+    public FolderInfo getSingleFolderInfo(String folder_id, int page) {
         String params = "task=" + Constants.TASK_GET_FOLDER_INFO + "&folder_id=" + folder_id + "&pg=" + page;
         String json = HttpUtil.post(Constants.WOOZOOO_URL, getLanzouHeader(), params);
         return JSON.parseObject(json, FolderInfo.class);
@@ -59,7 +78,7 @@ public class LanzouUtil {
      * @param singleFolderInfo
      * @param videoId
      */
-    private void saveSingleFolder(String folder_id, FolderInfo singleFolderInfo, String videoId) {
+    public void saveSingleFolder(String folder_id, FolderInfo singleFolderInfo, String videoId) {
         List<Text> text = singleFolderInfo.getText();
         for (Text singleFileInfo : text) {
             MyFile myFile = new MyFile();
@@ -216,5 +235,31 @@ public class LanzouUtil {
         simpleUploadResponse.setFileId(fileId);
         simpleUploadResponse.setShareId(shareId);
         return simpleUploadResponse;
+    }
+
+    /**
+     * 在简单上传之后，把蓝奏文件数据保存到数据库
+     *
+     * @param file
+     * @return
+     */
+    public LanzouFile saveLanzouFileAfterSimpleUpload(File file, SimpleUploadResponse simpleUploadResponse) {
+        LanzouFile lanzouFile = new LanzouFile();
+        lanzouFile.setCreateTime(new Date());
+        lanzouFile.setRealName(file.getName());
+        lanzouFile.setRealExtension(FilenameUtils.getExtension(file.getName()));
+        lanzouFile.setFakeName(file.getName() + ".zip");
+        lanzouFile.setFakeExtension("zip");
+        lanzouFile.setSize(file.length());
+        lanzouFile.setFolderId(Constants.UPLOAD_FOLDER_ID);
+        lanzouFile.setFileId(simpleUploadResponse.getFileId());
+        lanzouFile.setShareId(simpleUploadResponse.getShareId());
+        self.lanzouFileRepository.save(lanzouFile);
+        return lanzouFile;
+    }
+
+    public LanzouFile simpleUploadAndSave(File file) {
+        SimpleUploadResponse simpleUploadResponse = simpleUploadFile(file);
+        return saveLanzouFileAfterSimpleUpload(file, simpleUploadResponse);
     }
 }
