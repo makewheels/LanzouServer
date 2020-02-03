@@ -57,9 +57,9 @@ public class LanzouController {
      * @param tsId
      * @return
      */
-    @RequestMapping("getFile")
+    @RequestMapping("getFileByTsId")
     @CrossOrigin
-    public String getFile(@RequestParam String tsId) {
+    public String getFileByTsId(@RequestParam String tsId) {
         tsId = tsId.replace(".js", "");
         MyFile myFile = myFileRepository.findMyFileByTsIdEquals(tsId);
         String shareId = myFile.getShareId();
@@ -85,6 +85,30 @@ public class LanzouController {
         System.out.println("getFile tsId = " + myFile.getTsId());
 
 //        return "redirect:" + new LanzouUtil().getDirectUrl(shareId);
+        return "redirect:" + href;
+    }
+
+    /**
+     * @param shareId
+     * @return
+     */
+    @RequestMapping("getFileByShareId")
+    @CrossOrigin
+    public String getFileByShareId(@RequestParam String shareId) {
+        if (driver == null) {
+            driver = new PhantomJSDriver();
+        }
+        driver.get(Constants.LANZOU_URL + "/" + shareId);
+        try {
+            Thread.sleep(1500);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        WebElement a = driver.switchTo().
+                frame(driver.findElement(By.xpath("/html/body/div[3]/div[2]/div[4]/iframe")))
+                .findElement(By.xpath("//*[@id=\"go\"]/a"));
+        String href = a.getAttribute("href");
+        System.out.println(href);
         return "redirect:" + href;
     }
 

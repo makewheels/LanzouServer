@@ -7,10 +7,13 @@ import com.eg.lanzouserver.bean.lanzou.DirectUrl;
 import com.eg.lanzouserver.bean.lanzou.fileshareid.FileShareId;
 import com.eg.lanzouserver.bean.lanzou.folderinfo.FolderInfo;
 import com.eg.lanzouserver.bean.lanzou.folderinfo.Text;
+import com.eg.lanzouserver.bean.lanzou.uploadresponse.SimpleUploadResponse;
 import com.eg.lanzouserver.bean.lanzou.uploadresponse.UploadResponse;
 import com.eg.lanzouserver.repository.MyFileRepository;
 import com.eg.lanzouserver.repository.VideoRepository;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -155,6 +158,11 @@ public class LanzouUtil {
      * @throws IOException
      */
     public UploadResponse uploadFile(File file, String folderId) throws IOException {
+        //先给file改名字，后面加.zip
+        File originalFile = new File(file.getAbsolutePath());
+        File newFile = new File(file.getAbsolutePath() + ".zip");
+        file.renameTo(newFile);
+        file = newFile;
         Map<String, String> header = new HashMap();
         header.put("accept", "*/*");
         header.put("Cookie", Constants.COOKIE_PHPDISK_INFO_KEY + "=" + Constants.COOKIE_PHPDISK_INFO_VALUE);
@@ -171,9 +179,18 @@ public class LanzouUtil {
         params.put("name", file.getName());
         params.put("size", file.length() + "");
 
+        //上传
         String json = HttpUtil.uploadFile(Constants.UPLOAD_URL, header, params,
                 "upload_file", file);
-        return JSON.parseObject(json, UploadResponse.class);
+
+        //重命名回去
+        file.renameTo(originalFile);
+
+        //返回值
+        UploadResponse uploadResponse = JSON.parseObject(json, UploadResponse.class);
+        System.out.println("lanzou upload " + uploadResponse.getText().get(0).getName()
+                + JSON.toJSONString(uploadResponse));
+        return uploadResponse;
     }
 
     /**
@@ -182,12 +199,22 @@ public class LanzouUtil {
      * @param file
      * @return
      */
-    public UploadResponse simpleUploadFile(File file) {
+    public SimpleUploadResponse simpleUploadFile(File file) {
+        SimpleUploadResponse simpleUploadResponse = new SimpleUploadResponse();
+        UploadResponse uploadResponse = null;
         try {
-            return uploadFile(file, Constants.UPLOAD_FOLDER_ID);
+            uploadResponse = uploadFile(file, Constants.UPLOAD_FOLDER_ID);
         } catch (IOException e) {
             e.printStackTrace();
         }
-        return null;
+        if (uploadResponse == null) {
+            return null;
+        }
+        com.eg.lanzouserver.bean.lanzou.uploadresponse.Text text = uploadResponse.getText().get(0);
+        String fileId = text.getId();
+        String shareId = text.getF_id();
+        simpleUploadResponse.setFileId(fileId);
+        simpleUploadResponse.setShareId(shareId);
+        return simpleUploadResponse;
     }
 }
