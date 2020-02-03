@@ -42,7 +42,7 @@ public class AutoPrepareVideo {
             LanzouFile lanzouFile = lanzouUtil.simpleUploadAndSave(ts.getFile());
             ts.setLanzouFile(lanzouFile);
         }
-        //改m3u8文件
+        //修改m3u8文件
         File m3u8File = makeM3u8Result.getM3u8File();
         List<String> lines = FileUtils.readLines(m3u8File, "utf-8");
         for (int i = 0; i < lines.size(); i++) {
@@ -58,14 +58,16 @@ public class AutoPrepareVideo {
                     shareId = ts.getLanzouFile().getShareId();
                 }
             }
-            String newLine = Constants.BASE_URL + "/lanzou/getFileByShareId?shareId=" + shareId;
+            //是绝对的http url，还是相对路径
+//            String newLine = Constants.BASE_URL + "/lanzou/getFileByShareId?shareId=" + shareId;
+            String newLine = "getFileByShareId?shareId=" + shareId;
             lines.set(i, newLine);
         }
         FileUtils.writeLines(m3u8File, lines);
         //上传m3u8文件到蓝奏云
         LanzouFile m3u8LanzouFile = lanzouUtil.simpleUploadAndSave(m3u8File);
         String m3u8Url = Constants.BASE_URL + "/lanzou/getFileByShareId?shareId=" + m3u8LanzouFile.getShareId();
-        System.out.println("m3u8Url = " + m3u8Url);
+        System.out.println("m3u8Url = " + m3u8Url + "&a=b.m3u8");
         //制作html
         Map<String, String> params = new HashMap<>();
         params.put("title", title);
@@ -77,10 +79,10 @@ public class AutoPrepareVideo {
                 + URLEncoder.encode(title, "utf-8") + "-" + videoId + "/video.html";
         //删除html文件
         htmlFile.delete();
-        File folder = makeM3u8Result.getFolder();
         System.out.println(htmlUrl);
 
         //删除folder所有转码文件
+        m3u8File.delete();
         for (MakeM3u8Result.Ts ts : tsList) {
             ts.getFile().delete();
         }

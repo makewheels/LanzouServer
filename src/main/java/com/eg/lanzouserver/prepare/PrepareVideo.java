@@ -37,7 +37,7 @@ public class PrepareVideo {
             File newFile = new File(file.getParent(), videoId + "-" + index + ".ts.zip");
             file.renameTo(newFile);
         }
-        //改m3u8文件
+        //修改m3u8文件
         File m3u8File = new File(Constants.VIDEO_FOLDER, "out.m3u8");
         List<String> lines = FileUtils.readLines(m3u8File, "utf-8");
         for (int i = 0; i < lines.size(); i++) {
