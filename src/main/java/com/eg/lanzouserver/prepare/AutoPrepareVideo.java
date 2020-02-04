@@ -1,6 +1,5 @@
 package com.eg.lanzouserver.prepare;
 
-import com.alibaba.fastjson.JSON;
 import com.eg.lanzouserver.bean.Video;
 import com.eg.lanzouserver.bean.lanzou.LanzouFile;
 import com.eg.lanzouserver.repository.VideoRepository;
@@ -49,6 +48,7 @@ public class AutoPrepareVideo {
         video.setVideoId(videoId);
         //转码
         MakeM3u8Result makeM3u8Result = VideoUtil.makeM3u8(videoFile, videoId);
+        System.err.println("转码完成，开始上传，ts碎片总共 " + makeM3u8Result.getTsFileList().size() + " 个");
         //上传ts碎片到蓝奏云
         LanzouUtil lanzouUtil = new LanzouUtil();
         List<MakeM3u8Result.Ts> tsList = makeM3u8Result.getTsFileList();
@@ -64,11 +64,11 @@ public class AutoPrepareVideo {
             LanzouFile lanzouFile = lanzouUtil.simpleUploadAndSave(ts.getFile());
             ts.setLanzouFile(lanzouFile);
             //显示进度
-            long tsFileSize = ts.getFile().length();
-            uploadSize += tsFileSize;
-            double progress = uploadSize / totalSize;
-            String format = String.format("%.2f", progress);
-            System.out.println(format);
+            uploadSize += ts.getFile().length();
+            double progress = uploadSize * 1.0 / totalSize;
+            String format = String.format("%.4f", progress);
+            System.err.println("progress: " + title + " "
+                    + format + "% (" + (i + 1) + "/" + tsList.size() + ")");
         }
         //修改m3u8文件
         File m3u8File = makeM3u8Result.getM3u8File();
