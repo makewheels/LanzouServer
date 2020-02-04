@@ -1,17 +1,22 @@
 package com.eg.lanzouserver.prepare;
 
+import com.alibaba.fastjson.JSON;
+import com.eg.lanzouserver.bean.Video;
 import com.eg.lanzouserver.bean.lanzou.LanzouFile;
+import com.eg.lanzouserver.repository.VideoRepository;
 import com.eg.lanzouserver.util.*;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.io.File;
 import java.io.IOException;
 import java.net.URLEncoder;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -24,23 +29,46 @@ import java.util.Map;
 @RunWith(SpringRunner.class)
 @SpringBootTest
 public class AutoPrepareVideo {
+    @Autowired
+    VideoRepository videoRepository;
 
-    @Test
-    public void run() throws IOException {
-        //视频文件
-        File videoFile = new File("D:\\zBILIBILI\\1_我的影片17.flv");
+    /**
+     * 准备单个视频文件
+     *
+     * @param videoFile
+     * @throws IOException
+     */
+    private Video prepareSingleVideo(File videoFile) throws IOException {
+        Video video = new Video();
+        video.setCreateTime(new Date());
         //标题
         String title = FilenameUtils.getBaseName(videoFile.getName());
+        video.setTitle(title);
         //生成视频id
         String videoId = UuidUtil.getUuid();
+        video.setVideoId(videoId);
         //转码
         MakeM3u8Result makeM3u8Result = VideoUtil.makeM3u8(videoFile, videoId);
-        //上传ts碎片
+        //上传ts碎片到蓝奏云
         LanzouUtil lanzouUtil = new LanzouUtil();
         List<MakeM3u8Result.Ts> tsList = makeM3u8Result.getTsFileList();
+        //用文件大小显示进度，先统计所有碎片总大小
+        long totalSize = 0;
+        long uploadSize = 0;
         for (MakeM3u8Result.Ts ts : tsList) {
+            totalSize += ts.getFile().length();
+        }
+        //执行上传
+        for (int i = 0; i < tsList.size(); i++) {
+            MakeM3u8Result.Ts ts = tsList.get(i);
             LanzouFile lanzouFile = lanzouUtil.simpleUploadAndSave(ts.getFile());
             ts.setLanzouFile(lanzouFile);
+            //显示进度
+            long tsFileSize = ts.getFile().length();
+            uploadSize += tsFileSize;
+            double progress = uploadSize / totalSize;
+            String format = String.format("%.2f", progress);
+            System.out.println(format);
         }
         //修改m3u8文件
         File m3u8File = makeM3u8Result.getM3u8File();
@@ -63,6 +91,7 @@ public class AutoPrepareVideo {
             String newLine = "getFileByShareId?shareId=" + shareId;
             lines.set(i, newLine);
         }
+        //重写m3u8文件
         FileUtils.writeLines(m3u8File, lines);
         //上传m3u8文件到蓝奏云
         LanzouFile m3u8LanzouFile = lanzouUtil.simpleUploadAndSave(m3u8File);
@@ -80,12 +109,28 @@ public class AutoPrepareVideo {
         //删除html文件
         htmlFile.delete();
         System.out.println(htmlUrl);
-
         //删除folder所有转码文件
         m3u8File.delete();
         for (MakeM3u8Result.Ts ts : tsList) {
             ts.getFile().delete();
         }
         makeM3u8Result.getFolder().delete();
+        //设置video参数
+        video.setM3u8Url(m3u8Url);
+        video.setHtmlUrl(htmlUrl);
+        //保存video
+        videoRepository.save(video);
+        return video;
+    }
+
+    @Test
+    public void run() throws IOException {
+        //上传一个文件夹
+        File folder = new File("D:\\BaiduNetdiskDownload\\007系列全集.外挂国语.中英字幕");
+        File[] files = folder.listFiles();
+        for (File videoFile : files) {
+            Video video = prepareSingleVideo(videoFile);
+            System.out.println(video);
+        }
     }
 }

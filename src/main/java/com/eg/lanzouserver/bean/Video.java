@@ -14,7 +14,9 @@ import java.util.Date;
 public class Video {
     @Id
     private String _id;
-    private String name;
+    private String title;
     private String videoId;
+    private String htmlUrl;
+    private String m3u8Url;
     private Date createTime;
 }

@@ -15,3 +15,7 @@ ffmpeg -i 1.mp4 -codec copy -vbsf h264_mp4toannexb -map 0 -f segment -segment_li
 Linux Docker跑mongo命令：
 
 docker run -itd --name mongo -p 27017:27017 mongo
+
+m3u8直播测试地址：
+
+http://cctvalih5ca.v.myalicdn.com/live/cctv1_2/index.m3u8
