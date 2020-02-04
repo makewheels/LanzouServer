@@ -14,6 +14,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.Date;
 import java.util.HashMap;
@@ -37,7 +38,7 @@ public class AutoPrepareVideo {
      * @param videoFile
      * @throws IOException
      */
-    private Video prepareSingleVideo(File videoFile) throws IOException {
+    private Video prepareSingleVideo(File videoFile) {
         Video video = new Video();
         video.setCreateTime(new Date());
         //标题
@@ -47,7 +48,12 @@ public class AutoPrepareVideo {
         String videoId = UuidUtil.getUuid();
         video.setVideoId(videoId);
         //转码
-        MakeM3u8Result makeM3u8Result = VideoUtil.makeM3u8(videoFile, videoId);
+        MakeM3u8Result makeM3u8Result = null;
+        try {
+            makeM3u8Result = VideoUtil.makeM3u8(videoFile, videoId);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         System.err.println("转码完成，开始上传，ts碎片总共 " + makeM3u8Result.getTsFileList().size() + " 个");
         //上传ts碎片到蓝奏云
         LanzouUtil lanzouUtil = new LanzouUtil();
@@ -65,14 +71,19 @@ public class AutoPrepareVideo {
             ts.setLanzouFile(lanzouFile);
             //显示进度
             uploadSize += ts.getFile().length();
-            double progress = uploadSize * 1.0 / totalSize;
-            String format = String.format("%.4f", progress);
+            double progress = uploadSize * 1.0 / totalSize * 100;
+            String format = String.format("%.2f", progress);
             System.err.println("progress: " + title + " "
                     + format + "% (" + (i + 1) + "/" + tsList.size() + ")");
         }
         //修改m3u8文件
         File m3u8File = makeM3u8Result.getM3u8File();
-        List<String> lines = FileUtils.readLines(m3u8File, "utf-8");
+        List<String> lines = null;
+        try {
+            lines = FileUtils.readLines(m3u8File, "utf-8");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         for (int i = 0; i < lines.size(); i++) {
             String line = lines.get(i);
             if (line.startsWith("#")) {
@@ -92,7 +103,11 @@ public class AutoPrepareVideo {
             lines.set(i, newLine);
         }
         //重写m3u8文件
-        FileUtils.writeLines(m3u8File, lines);
+        try {
+            FileUtils.writeLines(m3u8File, lines);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         //上传m3u8文件到蓝奏云
         LanzouFile m3u8LanzouFile = lanzouUtil.simpleUploadAndSave(m3u8File);
         String m3u8Url = Constants.BASE_URL + "/lanzou/getFileByShareId?shareId=" + m3u8LanzouFile.getShareId();
@@ -104,8 +119,13 @@ public class AutoPrepareVideo {
         File htmlFile = FreemakerUtil.createHtmlByMode("video.html.ftl", "video.html", params);
         //上传html文件到腾讯云对象存储
         QcloudCosUtil.saveToQcloud(htmlFile, "video/" + title + "-" + videoId + "/video.html");
-        String htmlUrl = "http://bucket-1253319037.cos.ap-beijing.myqcloud.com/video/"
-                + URLEncoder.encode(title, "utf-8") + "-" + videoId + "/video.html";
+        String htmlUrl = null;
+        try {
+            htmlUrl = "http://bucket-1253319037.cos.ap-beijing.myqcloud.com/video/"
+                    + URLEncoder.encode(title, "utf-8") + "-" + videoId + "/video.html";
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
         //删除html文件
         htmlFile.delete();
         System.out.println(htmlUrl);
@@ -124,7 +144,7 @@ public class AutoPrepareVideo {
     }
 
     @Test
-    public void run() throws IOException {
+    public void run() {
         //上传一个文件夹
         File folder = new File("D:\\BaiduNetdiskDownload\\007系列全集.外挂国语.中英字幕");
         File[] files = folder.listFiles();

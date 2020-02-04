@@ -218,14 +218,9 @@ public class LanzouUtil {
      * @param file
      * @return
      */
-    public SimpleUploadResponse simpleUploadFile(File file) {
+    public SimpleUploadResponse simpleUploadFile(File file) throws IOException {
         SimpleUploadResponse simpleUploadResponse = new SimpleUploadResponse();
-        UploadResponse uploadResponse = null;
-        try {
-            uploadResponse = uploadFile(file, Constants.UPLOAD_FOLDER_ID);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        UploadResponse uploadResponse = uploadFile(file, Constants.UPLOAD_FOLDER_ID);
         if (uploadResponse == null) {
             return null;
         }
@@ -258,8 +253,19 @@ public class LanzouUtil {
         return lanzouFile;
     }
 
+    /**
+     * 简单上传和保存
+     *
+     * @param file
+     * @return
+     */
     public LanzouFile simpleUploadAndSave(File file) {
-        SimpleUploadResponse simpleUploadResponse = simpleUploadFile(file);
-        return saveLanzouFileAfterSimpleUpload(file, simpleUploadResponse);
+        try {
+            SimpleUploadResponse simpleUploadResponse = simpleUploadFile(file);
+            return saveLanzouFileAfterSimpleUpload(file, simpleUploadResponse);
+        } catch (IOException e) {
+            e.printStackTrace();
+            return simpleUploadAndSave(file);
+        }
     }
 }
