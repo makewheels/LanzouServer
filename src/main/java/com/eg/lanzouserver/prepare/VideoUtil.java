@@ -28,8 +28,8 @@ public class VideoUtil {
         }
         File m3u8File = new File(folder.getAbsolutePath() + File.separator + videoId + ".m3u8");
         //转码视频
-        String cmd = "ffmpeg -i " + videoFile.getAbsolutePath()
-                + " -codec copy -vbsf h264_mp4toannexb -map 0 -f segment -segment_list "
+        String cmd = "ffmpeg -i \"" + videoFile.getAbsolutePath()
+                + "\" -codec copy -vbsf h264_mp4toannexb -map 0 -f segment -segment_list "
                 + m3u8File.getAbsolutePath() + " -segment_time 10 " + folder.getAbsolutePath()
                 + File.separator + videoId + "-%d.ts";
         Process process = Runtime.getRuntime().exec(cmd);

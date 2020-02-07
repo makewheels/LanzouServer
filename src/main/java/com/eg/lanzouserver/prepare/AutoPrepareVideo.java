@@ -73,8 +73,8 @@ public class AutoPrepareVideo {
             uploadSize += ts.getFile().length();
             double progress = uploadSize * 1.0 / totalSize * 100;
             String format = String.format("%.2f", progress);
-            System.err.println("progress: " + title + " "
-                    + format + "% (" + (i + 1) + "/" + tsList.size() + ")");
+            System.err.println("progress: " + format + "% (" + (i + 1) + "/" + tsList.size()
+                    + ") " + title);
         }
         //修改m3u8文件
         File m3u8File = makeM3u8Result.getM3u8File();
